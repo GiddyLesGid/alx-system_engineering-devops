@@ -13,7 +13,7 @@ server_config=\
 frontend  whistler-frontend
         bind *:80
         mode http
-        default_backend senerwa-backend
+        default_backend whistler-backend
 backend whistler-backend
         balance roundrobin
         server 168814-web-01 52.3.220.95:80 check
