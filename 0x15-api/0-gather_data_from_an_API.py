@@ -1,37 +1,25 @@
 #!/usr/bin/python3
-
-"""
-Returns TODO list progress for a given employee ID and saves it to a file.
-"""
-
-import sys
+""" Script that uses JSONPlaceholder API to get information about employee """
 import requests
-import json
+import sys
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.exit("Usage: python script.py <employee_id>")
+    url = 'https://jsonplaceholder.typicode.com/'
 
-    employee_id = sys.argv[1]
-    base_url = "https://jsonplaceholder.typicode.com/"
+    user = '{}users/{}'.format(url, sys.argv[1])
+    res = requests.get(user)
+    json_o = res.json()
+    print("Employee {} is done with tasks".format(json_o.get('name')), end="")
 
-    # Retrieve user information
-    user_response = requests.get(base_url + "users/{}".format(employee_id))
-    user_data = user_response.json()
+    todos = '{}todos?userId={}'.format(url, sys.argv[1])
+    res = requests.get(todos)
+    tasks = res.json()
+    l_task = []
+    for task in tasks:
+        if task.get('completed') is True:
+            l_task.append(task)
 
-    # Retrieve TODO list information
-    todos_response = requests.get(base_url + "todos", params={"userId": employee_id})
-    todos_data = todos_response.json()
-
-    completed = [task.get("title") for task in todos_data if task.get("completed")]
-    total_tasks = len(todos_data)
-
-    print("Employee {} is done with tasks({}/{}):".format(user_data.get("name"), len(completed), total_tasks))
-    for task_title in completed:
-        print("\t{}".format(task_title))
-    
-    # Save TODO list to a file
-    filename = "todos_employee_{}.json".format(employee_id)
-    with open(filename, "w") as file:
-        json.dump(todos_data, file)
-    print("TODO list saved to", filename)
+    print("({}/{}):".format(len(l_task), len(tasks)))
+    for task in l_task:
+        print("\t {}".format(task.get("title")))
