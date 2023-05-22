@@ -1,14 +1,9 @@
 #!/usr/bin/python3
 """Returns to-do list information for a given employee ID."""
 import requests
-import sys
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Please provide the employee ID as a command-line argument.")
-        sys.exit(1)
-
-    employee_id = sys.argv[1]
+    employee_id = 1  # Hardcoded employee ID
 
     url = "https://jsonplaceholder.typicode.com/"
     user = requests.get(url + "users/{}".format(employee_id)).json()
