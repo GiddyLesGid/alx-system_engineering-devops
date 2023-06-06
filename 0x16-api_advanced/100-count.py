@@ -1,76 +1,49 @@
 #!/usr/bin/python3
-"""
-Function that queries the Reddit API and prints
-the count of given keywords in the top hot posts of a subreddit
-"""
-import re
+"""Module for a function that queries the Reddit API recursively."""
+
 import requests
-import sys
 
+def count_words(subreddit, word_list, after='', word_dict={}):
+    """A function that queries the Reddit API, parses the title of
+    all hot articles, and prints a sorted count of given keywords
+    (case-insensitive, delimited by spaces).
+    Javascript should count as javascript, but java should not.
+    If no posts match or the subreddit is invalid, it prints nothing.
+    """
 
-def add_title(dictionary, hot_posts):
-    """ Adds item into a list """
-    if len(hot_posts) == 0:
-        return
+    if not word_dict:
+        for word in word_list:
+            if word.lower() not in word_dict:
+                word_dict[word.lower()] = 0
 
-    title = hot_posts[0]['data']['title'].split()
-    for word in title:
-        for key in dictionary.keys():
-            c = re.compile(r"^{}$".format(key), re.I)
-            if c.findall(word):
-                dictionary[key] += 1
-    hot_posts.pop(0)
-    add_title(dictionary, hot_posts)
-
-
-def recurse(subreddit, dictionary, after=None):
-    """ Queries the Reddit API """
-    user_agent = 'Mozilla/5.0'
-    headers = {
-        'User-Agent': user_agent
-    }
-
-    params = {
-        'after': after
-    }
-
-    url = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
-    res = requests.get(url,
-                       headers=headers,
-                       params=params,
-                       allow_redirects=False)
-
-    if res.status_code != 200:
+    if after is None:
+        wordict = sorted(word_dict.items(), key=lambda x: (-x[1], x[0]))
+        for word in wordict:
+            if word[1]:
+                print('{}: {}'.format(word[0], word[1]))
         return None
 
-    data = res.json()
-    hot_posts = data['data']['children']
-    add_title(dictionary, hot_posts)
-    after = data['data']['after']
-    if not after:
-        return
-    recurse(subreddit, dictionary, after=after)
+    url = 'https://www.reddit.com/r/{}/hot/.json'.format(subreddit)
+    header = {'user-agent': 'redquery'}
+    parameters = {'limit': 100, 'after': after}
+    response = requests.get(url, headers=header, params=parameters,
+                            allow_redirects=False)
 
+    if response.status_code != 200:
+        return None
 
-def count_words(subreddit, word_list):
-    """ Initializes the count_words function """
-    dictionary = {}
+    try:
+        hot = response.json()['data']['children']
+        aft = response.json()['data']['after']
+        for post in hot:
+            title = post['data']['title']
+            lower = [word.lower() for word in title.split(' ')]
 
-    for word in word_list:
-        dictionary[word.lower()] = 0
+            for word in word_dict.keys():
+                word_dict[word] += lower.count(word)
 
-    recurse(subreddit, dictionary)
+    except Exception:
+        return None
 
-    sorted_items = sorted(dictionary.items(), key=lambda kv: (-kv[1], kv[0]))
+    count_words(subreddit, word_list, aft, word_dict)
 
-    for item in sorted_items:
-        if item[1] != 0:
-            print("{}: {}".format(item[0], item[1]))
-
-
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage: {} <subreddit> <list of keywords>".format(sys.argv[0]))
-        print("Example: {} programming 'python java javascript'".format(sys.argv[0]))
-    else:
-        count_words(sys.argv[1], [x.lower() for x in sys.argv[2].split()])
